@@ -28,6 +28,8 @@ function createListElement(title) {
 
   const listCards = document.createElement("div");
   listCards.classList.add("list-cards");
+  listCards.addEventListener("dragover", dragOver);
+  listCards.addEventListener("drop", drop);
 
   const addCardContainer = document.createElement("div");
   addCardContainer.classList.add("add-card");
@@ -64,6 +66,9 @@ function createListElement(title) {
 function createCardElement(title) {
   const card = document.createElement("div");
   card.classList.add("card");
+  card.setAttribute("draggable", "true");
+  card.addEventListener("dragstart", dragStart);
+  card.addEventListener("dragend", dragEnd);
 
   const cardText = document.createElement("span");
   cardText.textContent = title;
@@ -79,4 +84,57 @@ function createCardElement(title) {
   card.appendChild(deleteButton);
 
   return card;
+}
+
+function dragStart(event) {
+  event.dataTransfer.setData("text/plain", event.target.id);
+  setTimeout(() => {
+    event.target.classList.add("hide");
+  }, 0);
+  event.target.classList.add("dragging");
+}
+
+function dragEnd(event) {
+  event.target.classList.remove("hide");
+  event.target.classList.remove("dragging");
+}
+
+function dragOver(event) {
+  event.preventDefault();
+  const draggingElement = document.querySelector(".dragging");
+  const afterElement = getDragAfterElement(
+    event.target.closest(".list-cards"),
+    event.clientY
+  );
+  const listCards = event.target.closest(".list-cards");
+  if (afterElement == null) {
+    listCards.appendChild(draggingElement);
+  } else {
+    listCards.insertBefore(draggingElement, afterElement);
+  }
+}
+
+function drop(event) {
+  event.preventDefault();
+  const draggable = document.querySelector(".dragging");
+  draggable.classList.remove("dragging");
+}
+
+function getDragAfterElement(container, y) {
+  const draggableElements = [
+    ...container.querySelectorAll(".card:not(.dragging)"),
+  ];
+
+  return draggableElements.reduce(
+    (closest, child) => {
+      const box = child.getBoundingClientRect();
+      const offset = y - box.top - box.height / 2;
+      if (offset < 0 && offset > closest.offset) {
+        return { offset: offset, element: child };
+      } else {
+        return closest;
+      }
+    },
+    { offset: Number.NEGATIVE_INFINITY }
+  ).element;
 }
